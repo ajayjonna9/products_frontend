@@ -241,13 +241,9 @@ const ProductsList = () => {
         dispatch(fetchProducts(paginationModel));
     }, [paginationModel, dispatch]);
 
-    useEffect(() => {
-        if (error) {
-            setNotification({ message: 'Something wrong!', severity: 'error' })
-        }
-    }, [error]);
-    if (loading) return <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", position: "absolute", top: "50%", right: "50%" }}> <CircularProgress /></Box>;
-    if (error) return;
+
+    if (loading) return <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center",height:"100vh" }}> <CircularProgress /></Box>;
+    if (error) return <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center",height:"100vh",fontSize: "larger",color:"red" }}><Typography>Something wrong!! </Typography></Box>;
 
     return (
         <div style={{    backgroundColor: "aliceblue"       }}>
