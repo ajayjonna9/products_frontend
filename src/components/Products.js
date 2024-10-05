@@ -2,8 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProducts, deleteProduct, editProduct, addProduct } from '../store/products';
 import { CircularProgress, Typography } from '@mui/material';
-import { DataGrid } from '@mui/x-data-grid';
-import Paper from '@mui/material/Paper';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Switch from '@mui/material/Switch';
@@ -16,7 +14,12 @@ import * as Yup from 'yup';
 import Grid from '@mui/material/Grid2'
 import CloseIcon from '@mui/icons-material/Close';
 import NotificationSnackbar from '../helpers/NotificationSnackbar'
-
+import CoreTable from "../helpers/CoreTable";
+import TablePagination from '@mui/material/TablePagination';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
 
 const validationSchema = Yup.object().shape({
     name: Yup.string()
@@ -39,7 +42,14 @@ const fields = [
     { name: 'isBestSeller', label: 'Is Best Seller', type: 'enum', options: [{ value: 1, label: "Yes" }, { value: 0, label: "No" }] },
 ];
 
-
+const initialFormValues = {
+    name: '',
+    description: '',
+    price: '',
+    isRecommended: 0,
+    status: 0,
+    isBestSeller: 0,
+}
 
 const ProductsList = () => {
     const dispatch = useDispatch();
@@ -100,7 +110,7 @@ const ProductsList = () => {
                     />
                     <DeleteOutlineOutlinedIcon
                         style={{ cursor: 'pointer' }}
-                        onClick={() => handleDelete(params.row._id)}
+                        onClick={() => handleClickOpenConfirmation(params.row._id)}
                     />
                 </div>
             ),
@@ -112,17 +122,33 @@ const ProductsList = () => {
     const [showProductEditForm, setShowProductEditForm] = useState(false)
     const [selectedId, setSelectedId] = useState(null)
 
-    const [initialValues, setInitialValues] = useState({
-        name: '',
-        description: '',
-        price: '',
-        isRecommended: 0,
-        status: 0,
-        isBestSeller: 0,
-    })
-    const [rows, setRows] = useState(products.products);
+    const [initialValues, setInitialValues] = useState(initialFormValues)
+    const [rows, setRows] = useState([]);
 
     const [notification, setNotification] = useState({ message: '', severity: '' });
+    const [paginationModel, setPaginationModel] = useState({
+        page: 0,
+        pageSize: 5,
+    });
+    const handleChangePage = (event, newPage) => {
+        setPaginationModel({ ...paginationModel, page: newPage })
+    };
+    const [deleteConfirmation, setDeleteConfirmation] = React.useState(false);
+
+    const handleClickOpenConfirmation = (id) => {
+        setDeleteConfirmation(true);
+        setSelectedId(id)
+    };
+  
+    const handleCloseConfirmation = () => {
+        setDeleteConfirmation(false);
+        setSelectedId(null)
+    };
+    const handleChangeRowsPerPage = (event) => {
+
+        setPaginationModel({ ...paginationModel, page: 0, pageSize: parseInt(event.target.value, 10) })
+
+    };
 
     const handleCloseNotification = () => {
         setNotification({ message: '', severity: '' });
@@ -131,14 +157,14 @@ const ProductsList = () => {
     const handleClose = () => {
         setShowProductForm(false)
         setShowProductEditForm(false)
+        setInitialValues(initialFormValues)
+        setSelectedId(null)
     };
-    const [paginationModel, setPaginationModel] = useState({
-        page: 0,
-        pageSize: 10,
-    });
+
     const handleSubmit = (values) => {
         setShowProductForm(false)
         setShowProductEditForm(false)
+        setInitialValues(initialFormValues)
         dispatch(addProduct(values)).then(res => {
             dispatch(fetchProducts(paginationModel));
 
@@ -153,14 +179,8 @@ const ProductsList = () => {
     const handleEditForm = (values) => {
         setShowProductForm(false)
         setShowProductEditForm(false)
-        setInitialValues({
-            name: '',
-            description: '',
-            price: '',
-            isRecommended: 0,
-            status: 0,
-            isBestSeller: 0,
-        })
+        setInitialValues(initialFormValues)
+        setSelectedId(null)
         dispatch(editProduct({ id: selectedId, updatedProduct: values })).then(res => {
             // dispatch(fetchProducts(paginationModel));
             const updatedRows = rows.map((row) => {
@@ -179,11 +199,6 @@ const ProductsList = () => {
 
     };
 
-    const handlePaginationChange = (newPaginationModel) => {
-
-
-        setPaginationModel(newPaginationModel);
-    };
     const handleChangeStatus = (event, id) => {
         let obj = {}
         const updatedRows = rows.map((row) => {
@@ -213,6 +228,7 @@ const ProductsList = () => {
             setNotification({ message: 'Failed to delete product!', severity: 'error' });
 
         })
+        handleCloseConfirmation()
     };
     const handleEdit = (row) => {
         setShowProductEditForm(true)
@@ -234,19 +250,19 @@ const ProductsList = () => {
         setShowProductForm(true)
     }
     useEffect(() => {
-        setRows(products.products);
+        setRows(products.products)
     }, [products.products]);
 
     useEffect(() => {
+
         dispatch(fetchProducts(paginationModel));
     }, [paginationModel, dispatch]);
 
-
-    if (loading) return <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center",height:"100vh" }}> <CircularProgress /></Box>;
-    if (error) return <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center",height:"100vh",fontSize: "larger",color:"red" }}><Typography>Something wrong!! </Typography></Box>;
+    if (loading) return <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh" }}> <CircularProgress /></Box>;
+    if (error) return <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", fontSize: "larger", color: "red" }}><Typography>Something wrong!! </Typography></Box>;
 
     return (
-        <div style={{    backgroundColor: "aliceblue"       }}>
+        <div style={{ backgroundColor: "aliceblue" }}>
             <Typography sx={{
                 textAlign: "center",
                 padding: "10px",
@@ -260,19 +276,7 @@ const ProductsList = () => {
             }}>
                 <Button onClick={onClickAddProduct}><AddIcon />ADD PRODUCT</Button>
             </Box>
-            <Paper sx={{ width: '100%' }}>
-                <DataGrid
-                    rows={rows}
-                    columns={columns}
-                    getRowId={(row) => row._id}
-                    pagination
-                    paginationModel={paginationModel}
-                    onPaginationModelChange={handlePaginationChange}
-                    pageSizeOptions={[5, 10, 15, 20, 25]}
-                    rowCount={products.totalCount}
-                    sx={{ border: 0 }}
-                />
-            </Paper>
+            
             <Modal
                 open={showProductForm || showProductEditForm}
                 onClose={handleClose}
@@ -305,13 +309,42 @@ const ProductsList = () => {
                     </Grid>
                 </Grid>
             </Modal>
-
+            <Dialog
+        open={deleteConfirmation}
+        onClose={handleCloseConfirmation}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+           Do you want to delete
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={()=>handleDelete(selectedId)} variant="outlined" color="error">Delete</Button>
+          <Button onClick={handleCloseConfirmation} >
+            No
+          </Button>
+        </DialogActions>
+      </Dialog>
             {notification.message &&
                 <NotificationSnackbar
                     message={notification.message}
                     severity={notification.severity}
                     onClose={handleCloseNotification}
                 />}
+
+            <CoreTable columns={columns} data={rows} />
+            <TablePagination
+                component="div"
+                count={products.totalCount}
+                page={paginationModel.page}
+                onPageChange={handleChangePage}
+                rowsPerPage={paginationModel.pageSize}
+                onRowsPerPageChange={handleChangeRowsPerPage}
+                rowsPerPageOptions={[5, 10, 20]}
+            />
 
         </div>
     );

@@ -15,7 +15,7 @@ export const fetchProducts = createAsyncThunk('products/fetchProducts', async (d
     const response = await axios.get(API_URL, {
         params: {
             limit: data.pageSize, 
-            page: data.page,        
+            page: data.page+1,        
         }
     });
     return response.data;
